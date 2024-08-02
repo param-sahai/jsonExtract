@@ -3,15 +3,41 @@ const XLSX = require('xlsx');
 
 // Sample JSON data
 const jsonData = {
-    name: "Alice",
-    age: 25,
-    address: {
-        street: "123 Elm St",
-        city: "Wonderland"
-    },
-    phones: [
-        { type: "home", number: "123-456-7890" },
-        { type: "work", number: "987-654-3210" }
+    users: [
+        {
+            user_id: 1,
+            name: "John Doe",
+            accounts: [
+                {
+                    account_id: 101,
+                    plan: "Unlimited",
+                    devices: [
+                        { device_id: 1001, device_name: "iPhone 12" },
+                        { device_id: 1002, device_name: "Galaxy S21" }
+                    ]
+                },
+                {
+                    account_id: 102,
+                    plan: "Basic",
+                    devices: [
+                        { device_id: 1003, device_name: "Pixel 5" }
+                    ]
+                }
+            ]
+        },
+        {
+            user_id: 2,
+            name: "Jane Smith",
+            accounts: [
+                {
+                    account_id: 103,
+                    plan: "Family",
+                    devices: [
+                        { device_id: 1004, device_name: "iPhone 11" }
+                    ]
+                }
+            ]
+        }
     ]
 };
 
@@ -20,24 +46,29 @@ function flattenJson(data, parentKey = '', sep = '_') {
     let items = {};
     for (let [k, v] of Object.entries(data)) {
         let newKey = parentKey ? `${parentKey}${sep}${k}` : k;
-        if (typeof v === 'object' && !Array.isArray(v)) {
+
+        if (v && typeof v === 'object' && !Array.isArray(v)) {
             Object.assign(items, flattenJson(v, newKey, sep));
         } else if (Array.isArray(v)) {
             v.forEach((item, i) => {
-                Object.assign(items, flattenJson(item, `${newKey}${sep}${i}`, sep));
+                if (item && typeof item === 'object') {
+                    Object.assign(items, flattenJson(item, `${newKey}${sep}${i}`, sep));
+                } else {
+                    items[`${newKey}${sep}${i}`] = item;
+                }
             });
         } else {
-            items[newKey] = v;
+            items[newKey] = v !== undefined ? v : null;
         }
     }
     return items;
 }
 
 // Flatten the JSON data
-const flatData = flattenJson(jsonData);
+const flattenedData = jsonData.users.map(user => flattenJson(user));
 
 // Convert to worksheet
-const worksheet = XLSX.utils.json_to_sheet([flatData]);
+const worksheet = XLSX.utils.json_to_sheet(flattenedData);
 
 // Create a new workbook and append the worksheet
 const workbook = XLSX.utils.book_new();
